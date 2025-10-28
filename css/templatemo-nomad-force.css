@@ -19,17 +19,18 @@ https://templatemo.com/tm-567-nomad-force
   --title-color:                  #565758;
   --p-color:                      #717275;
 
-  --body-font-family:           'Noto Sans JP', sans-serif;
+  --heading-font-family:        'Noto Sans KR', sans-serif;
+  --body-font-family:           'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Nanum Gothic', 'Segoe UI', 'Roboto', sans-serif;
 
-  --h1-font-size:               72px;
-  --h2-font-size:               42px;
-  --h3-font-size:               36px;
-  --h4-font-size:               32px;
-  --h5-font-size:               24px;
-  --h6-font-size:               22px;
-  --p-font-size:                20px;
-  --copyright-text-font-size:   14px;
-  --custom-link-font-size:      12px;
+  --h1-font-size:               80px;
+  --h2-font-size:               48px;
+  --h3-font-size:               40px;
+  --h4-font-size:               34px;
+  --h5-font-size:               26px;
+  --h6-font-size:               24px;
+  --p-font-size:                22px;
+  --copyright-text-font-size:   15px;
+  --custom-link-font-size:      13px;
 
   --font-weight-light:          300;
   --font-weight-normal:         400;
@@ -67,6 +68,7 @@ h3,
 h4,
 h5,
 h6 {
+  font-family: var(--heading-font-family);
   font-weight: var(--font-weight-bold);
 }
 
@@ -240,7 +242,7 @@ strong {
 
 .navbar-brand {
   color: var(--primary-color);
-  font-size: 24px;
+  font-size: 26px;
   font-weight: var(--font-weight-bold);
 }
 
@@ -273,7 +275,7 @@ strong {
 
 .navbar-nav .nav-link {
   color: var(--p-color);
-  font-size: 18px;
+  font-size: 20px;
   font-weight: var(--font-weight-bold);
   position: relative;
 }
