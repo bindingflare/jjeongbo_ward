@@ -16,8 +16,26 @@
 
   function getDeviceType() {
     const ua = navigator.userAgent.toLowerCase();
-    const mobile = /(iphone|ipod|ipad|android|blackberry|iemobile|opera mini)/i.test(ua);
-    return mobile ? 'mobile' : 'desktop';
+    const isTablet = /(ipad|tablet|sm-t|gt-p|tab|nexus 7|nexus 10|kfapwi|kindle)/i.test(ua);
+    const isMobile = /(iphone|ipod|android(?!.*tablet)|blackberry|iemobile|opera mini|mobile)/i.test(ua);
+    if (isTablet) return 'tablet';
+    if (isMobile) return 'mobile';
+    return 'desktop';
+  }
+
+  async function getPublicIP(timeoutMs = 1500) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal, credentials: 'omit', cache: 'no-store' });
+      if (!res.ok) throw new Error('ipify non-200');
+      const data = await res.json();
+      return (data && data.ip) ? String(data.ip) : '';
+    } catch (_) {
+      return '';
+    } finally {
+      clearTimeout(t);
+    }
   }
 
   function getUTMString() {
@@ -57,14 +75,15 @@
     }
   }
 
-  function trackVisit() {
+  async function trackVisit() {
+    const ip = await getPublicIP().catch(() => '');
     const data = {
       id: getVisitorId(),
       landingUrl: window.location.href,
-      ip: '', // client-side cannot reliably get IP without external service
+      ip: ip,
       referer: document.referrer || '',
       time_stamp: nowTimestamp(),
-      utm: getUTMString(),
+      utm: 'company_website',
       device: getDeviceType()
     };
     sendToGAS('visitors', data);
@@ -211,7 +230,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Track visit
+    // Track visit (fire-and-forget)
     trackVisit();
 
     // Signup handler
@@ -235,4 +254,3 @@
     });
   });
 })();
-
