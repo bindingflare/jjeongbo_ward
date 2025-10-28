@@ -200,6 +200,27 @@ a:hover {
   color: var(--white-color);
 }
 
+/* Brand emphasis for specific characters */
+.brand-em {
+  display: inline-block;
+  font-size: 1.6em;
+  line-height: 0.9;
+  font-style: italic;
+  transform: skewX(-4deg);
+  transform-origin: bottom left;
+}
+
+.brand {
+  font-style: italic;
+  transform: skewX(-4deg);
+  transform-origin: bottom left;
+}
+
+/* Larger emphasis when used in hero heading */
+.hero .brand-em {
+  font-size: 1.8em;
+}
+
 b,
 strong {
   font-weight: var(--font-weight-bold);
