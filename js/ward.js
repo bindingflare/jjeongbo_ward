@@ -242,11 +242,26 @@
     const scoreEl = document.getElementById('riskScore');
     const labelEl = document.getElementById('riskLabel');
     const ul = document.getElementById('riskBullets');
+    const meterEl = document.getElementById('riskMeter');
     if (!resultCard || !scoreEl || !labelEl || !ul) return;
 
     resultCard.classList.remove('d-none');
     scoreEl.textContent = `${result.score}`;
     labelEl.textContent = `위험도: ${result.label}`;
+    // Animate water meter fill + color (blue→green→yellow→red)
+    if (meterEl) {
+      var clamped = Math.max(0, Math.min(100, Number(result.score) || 0));
+      var hue = Math.round(240 - (240 * clamped / 100)); // 240=blue → 0=red
+      var water = `hsl(${hue} 85% 52%)`;
+      var waterLight = `hsl(${hue} 90% 70%)`;
+      meterEl.style.setProperty('--fill', clamped + '%');
+      meterEl.style.setProperty('--water', water);
+      meterEl.style.setProperty('--waterLight', waterLight);
+      meterEl.setAttribute('aria-valuenow', String(clamped));
+      meterEl.setAttribute('aria-valuemin', '0');
+      meterEl.setAttribute('aria-valuemax', '100');
+      meterEl.setAttribute('role', 'meter');
+    }
     ul.innerHTML = '';
     result.bullets.forEach(b => {
       const li = document.createElement('li');
