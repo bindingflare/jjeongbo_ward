@@ -101,15 +101,14 @@
     // 6자리 임의의 문자열 생성
     const hash = Math.random().toString(36).substring(2, 8).toUpperCase();
     // 쿠키에서 기존 해시 값을 가져옴
-    const existing = getCookieValue('user');
+    const existingHash = getCookieValue('user');
     // 기존 해시 값이 없으면, 새로운 해시 값을 쿠키에 저장
     if (!existingHash) {
-      setCookieValue("user", hash, 180); // 쿠키 만료일은 6개월 
+      setCookieValue('user', hash, 180); // 쿠키 만료일은 6개월 
       return hash;
-    } else {
-        // 기존 해시 값이 있으면, 기존 값을 반환
-        return existingHash;
     }
+    // 기존 해시 값이 있으면 기존 값 반환
+    return existingHash;
   }
 
   function getMobileFlag() {

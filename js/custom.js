@@ -13,7 +13,12 @@
 
     // NEWS IMAGE RESIZE
     function NewsImageResize(){
-      $(".navbar").scrollspy({ offset: -76 });
+      try {
+        // Limit scrollspy errors when non-hash hrefs exist
+        $(".navbar").scrollspy({ offset: -76 });
+      } catch (e) {
+        // noop: ignore invalid selector errors from third-party scrollspy
+      }
       
       var LargeImage = $('.large-news-image').height();
 
