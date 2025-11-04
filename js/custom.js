@@ -39,7 +39,7 @@
           event.preventDefault();
           $('html, body').animate({
             scrollTop: target.offset().top - 66
-          }, 1000);
+          }, 300);
         }
       }
     });
