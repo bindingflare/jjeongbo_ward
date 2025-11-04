@@ -349,8 +349,17 @@
       }
       const res = document.getElementById('analysisResult');
       if (res) {
-        const top = res.getBoundingClientRect().top + window.pageYOffset - 80;
-        window.scrollTo({ top, behavior: 'smooth' });
+        const rect = res.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const fullyVisible = rect.top >= 0 && rect.bottom <= vh;
+        if (!fullyVisible) {
+          const curY = window.pageYOffset || document.documentElement.scrollTop || 0;
+          const targetY = rect.top + curY - 120;
+          const delta = targetY - curY;
+          const maxStep = 300; // limit scroll so it moves only a bit
+          const step = Math.max(-maxStep, Math.min(maxStep, delta));
+          window.scrollBy({ top: step, behavior: 'smooth' });
+        }
       }
     });
   });
