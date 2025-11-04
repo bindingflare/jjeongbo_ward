@@ -156,7 +156,7 @@
   }
 
   function assignmentSendVisitor() {
-    if (!ADDR_SCRIPT || !window.axios) return;
+    if (!ADDR_SCRIPT) return;
     /* data를 만들 땐 모든 field가 들어 있어야 함 */
     const payload = JSON.stringify({
       id: getUVfromCookie(),
@@ -167,22 +167,24 @@
       utm: getUTMSimple(),
       device: getMobileFlag()
     });
-    /* axios request */
-    window.axios.get(ADDR_SCRIPT + '?action=insert&table=visitors&data=' + encodeURIComponent(payload))
-      .catch(error => {
-        if (error.response) {
-            // 서버가 2xx 범위를 벗어난 상태 코드로 응답한 경우
-            console.log(error.response.data);
-            console.log(error.response.status);
-            console.log(error.response.headers);
-        } else if (error.request) {
-            // 요청이 전송되었지만 응답을 받지 못한 경우
-            console.log(error.request);
+    /* axios request (fallback to fetch if axios not available) */
+    const url = ADDR_SCRIPT + '?action=insert&table=visitors&data=' + encodeURIComponent(payload);
+    const req = (window.axios && window.axios.get) ? window.axios.get(url)
+               : fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true });
+    Promise.resolve(req).catch(error => {
+      try {
+        if (error && error.response) {
+          console.log(error.response.data);
+          console.log(error.response.status);
+          console.log(error.response.headers);
+        } else if (error && error.request) {
+          // 요청이 전송되었지만 응답을 받지 못한 경우
+          console.log(error.request);
         } else {
             // 요청 설정 중에 오류가 발생한 경우
             console.log('Error', error.message);
         }
-        console.log(error.config);
+      } catch (_) {}
     });
   }
 
@@ -197,7 +199,7 @@
   }
 
   function assignmentBindSignup() {
-    if (!ADDR_SCRIPT || !window.axios || !window.jQuery) return;
+    if (!ADDR_SCRIPT || !window.jQuery) return;
     ensurePopupContainer();
     const $ = window.jQuery;
     // Map to existing form/inputs in this template
@@ -216,7 +218,10 @@
       }
       const payload = JSON.stringify({ id: getUVfromCookie(), email: email, advice: advice });
       if ($.busyLoadFull) $.busyLoadFull('show');
-      window.axios.get(ADDR_SCRIPT + '?action=insert&table=tab_master&data=' + encodeURIComponent(payload))
+      const url = ADDR_SCRIPT + '?action=insert&table=tab_master&data=' + encodeURIComponent(payload);
+      const req = (window.axios && window.axios.get) ? window.axios.get(url)
+                 : fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true });
+      Promise.resolve(req)
         .then(() => {
           $('#email').val('');
           $('#message').val('');
@@ -264,11 +269,13 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Bind signup early so default POST is prevented even if CDNs fail
+    assignmentBindSignup();
+
     ensureAssignmentDeps()
       .then(() => loadJsonpIP())
       .then(() => {
         assignmentSendVisitor();
-        assignmentBindSignup();
       })
       .catch(() => {});
 
