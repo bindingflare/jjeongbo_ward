@@ -2,17 +2,25 @@
 (function () {
   // Apps Script endpoint URL
   const ADDR_SCRIPT = 'https://script.google.com/macros/s/AKfycbxknEwAXqcw6kr-EgsGmui7ngK_RreZy495wUFHVqXw7CYuTAomQt_NrAhkbF367I6Z/exec';
+  const ANALYZE_ENDPOINT = 'https://swai-backend.onrender.com/api/check';
 
-  function pad(n) { return n < 10 ? '0' + n : '' + n; }
-  function nowTimestamp() {
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const MM = pad(d.getMonth() + 1);
-    const dd = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const mm = pad(d.getMinutes());
-    const ss = pad(d.getSeconds());
-    return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+  function padValue(value) {
+    return (value < 10) ? "0" + value : value;
+  }
+
+  function getTimeStamp() {
+    const date = new Date();
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const seconds = date.getSeconds();
+
+    const formattedDate = `${padValue(year)}-${padValue(month)}-${padValue(day)} ${padValue(hours)}:${padValue(minutes)}:${padValue(seconds)}`;
+
+    return formattedDate;
   }
 
   
@@ -98,14 +106,44 @@
   }
 
   function getMobileFlag() {
-    return (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? 'mobile' : 'desktop';
+    var mobile = 'desktop';
+				if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+					// true for mobile device
+					mobile = 'mobile';
+				}
   }
 
   function getUTMSimple() {
     try {
-      const params = new URLSearchParams(location.search);
-      return params.get('utm');
-    } catch (e) { return null; }
+      var queryString = location.search;
+      const urlParams = new URLSearchParams(queryString);
+      return urlParams.get("utm")
+    } catch (e) { return ""; }
+  }
+  
+  async function callRemoteAnalyzer(text) {
+    if (!ANALYZE_ENDPOINT) throw new Error('Analyzer endpoint missing');
+    const res = await fetch(ANALYZE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) throw new Error('Analyzer HTTP ' + res.status);
+    const data = await res.json().catch(() => ({}));
+    const s = (data && (data.score ?? data.riskScore ?? (data.result ? data.result.score : undefined)));
+    const l = (data && (data.label ?? (data.result ? data.result.label : undefined)));
+    const b = (data && (data.bullets ?? data.issues ?? (data.result ? data.result.bullets : undefined))) || [];
+    let score = typeof s === 'number' ? s : 0;
+    score = Math.max(0, Math.min(100, score));
+    let label = l;
+    if (!label) {
+      if (score < 30) label = '낮음';
+      else if (score < 60) label = '보통';
+      else if (score < 80) label = '높음';
+      else label = '매우 높음';
+    }
+    const bullets = Array.isArray(b) ? b : [];
+    return { score, label, bullets };
   }
 
   function assignmentSendVisitor() {
@@ -115,7 +153,7 @@
       landingUrl: window.location.href,
       ip: jsonpIP,
       referer: document.referrer || '',
-      time_stamp: nowTimestamp(),
+      time_stamp: getTimeStamp(),
       utm: getUTMSimple(),
       device: getMobileFlag()
     });
@@ -165,85 +203,7 @@
     });
   }
 
-  function analyzeConsent(text) {
-    if (!text || !text.trim()) return { score: 0, label: '분석할 내용이 없습니다', bullets: [] };
-    const t = text; // Korean content; case-folding not necessary
-
-    function count(keyword) {
-      const re = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      const m = t.match(re);
-      return m ? m.length : 0;
-    }
-
-    function anyOf(arr) { return arr.some(k => t.indexOf(k) !== -1); }
-
-    let score = 0;
-
-    // Third-party sharing / outsourcing
-    const thirdKW = ['제3자', '제3 자', '제3', '수탁자', '위탁', '제공', '제공받는자', '제공받는 자'];
-    let thirdHits = 0; thirdKW.forEach(k => thirdHits += count(k));
-    const corpHits = count('주식회사') + count('㈜') + count('유한회사');
-    const approxThird = Math.max(0, corpHits);
-    const thirdScore = Math.min(30, thirdHits * 5);
-    score += thirdScore;
-
-    // Sensitive data
-    const sensitiveKW = ['민감정보', '고유식별정보', '주민등록번호', '여권번호', '운전면허번호', '건강정보', '바이오정보', '지문', '얼굴인식'];
-    const hasSensitive = anyOf(sensitiveKW);
-    if (hasSensitive) score += 25;
-
-    // Marketing / advertising
-    const mktKW = ['마케팅', '광고', '홍보', '프로모션', '광고성 정보', '맞춤형', '광고성'];
-    const hasMarketing = anyOf(mktKW);
-    if (hasMarketing) score += 15;
-
-    // Data categories breadth
-    const cats = ['이름','성명','생년월일','주소','전화','휴대전화','이메일','계좌','카드','위치','쿠키','결제','기기','IP','식별자','로그'];
-    let uniqueCats = 0; cats.forEach(c => { if (t.indexOf(c) !== -1) uniqueCats += 1; });
-    const catScore = Math.min(20, uniqueCats * 2);
-    score += catScore;
-
-    // Retention period
-    let retentionNote = '명시되지 않음/일반';
-    const indefiniteKW = ['영구', '무기한', '별도 보유기간', '탈퇴 후에도'];
-    const hasPurposeDone = (t.indexOf('목적 달성 시') !== -1) || (t.indexOf('목적달성 시') !== -1);
-    if (indefiniteKW.some(k => t.indexOf(k) !== -1)) {
-      score += 20; retentionNote = '무기한/불명확';
-    } else {
-      const m = t.match(/([0-9]{1,2})\s*년/g);
-      if (m && m.length) {
-        const years = m.map(s => parseInt(s.replace(/[^0-9]/g,''),10)).filter(Boolean);
-        const maxY = years.length ? Math.max.apply(null, years) : 0;
-        if (maxY >= 3) { score += 10; retentionNote = `${maxY}년 이상`; }
-        else if (maxY >= 1) { score += 5; retentionNote = `${maxY}년 내`; }
-      }
-      if (hasPurposeDone) { retentionNote = '목적 달성 시'; }
-    }
-
-    // Mitigations
-    const hasOptOut = anyOf(['동의 거부', '철회', '옵트아웃', '수신 거부']);
-    const hasAnon = anyOf(['익명', '가명처리', '가명화']);
-    if (hasOptOut) score -= 10;
-    if (hasAnon) score -= 5;
-
-    score = Math.max(0, Math.min(100, score));
-
-    let label = '보통';
-    if (score < 30) label = '낮음';
-    else if (score < 60) label = '보통';
-    else if (score < 80) label = '높음';
-    else label = '매우 높음';
-
-    const bullets = [];
-    bullets.push(`제3자 제공/위탁 징후: ${thirdHits > 0 ? '있음' : '없음'}${approxThird ? ` (사업자 언급 ~${approxThird}회)` : ''}`);
-    bullets.push(`민감정보 포함: ${hasSensitive ? '예' : '아니오'}`);
-    bullets.push(`마케팅/광고 활용: ${hasMarketing ? '예' : '아니오'}`);
-    bullets.push(`수집 항목 다양성: ${uniqueCats}개 항목 감지`);
-    bullets.push(`보유기간: ${retentionNote}`);
-    if (hasOptOut || hasAnon) bullets.push(`감경 요인: ${[hasOptOut ? '동의 거부/철회 안내' : null, hasAnon ? '익명/가명 처리' : null].filter(Boolean).join(', ')}`);
-
-    return { score, label, bullets };
-  }
+  
 
   function updateAnalysisUI(result) {
     const resultCard = document.getElementById('analysisResult');
@@ -287,11 +247,19 @@
     const btn = document.getElementById('analyzeBtn');
     const loadBtn = document.getElementById('loadSampleBtn');
     if (loadBtn) loadBtn.addEventListener('click', function () { loadSample(); });
-    if (btn) btn.addEventListener('click', function () {
+    if (btn) btn.addEventListener('click', async function () {
       const ta = document.getElementById('consentText');
       const text = ta ? ta.value : '';
-      const result = analyzeConsent(text);
-      updateAnalysisUI(result);
+      if (!text || !text.trim()) return;
+      try {
+        if (window.jQuery && window.jQuery.busyLoadFull) window.jQuery.busyLoadFull('show');
+        const result = await callRemoteAnalyzer(text);
+        updateAnalysisUI(result);
+      } catch (e) {
+        alert('분석 API 호출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      } finally {
+        try { if (window.jQuery && window.jQuery.busyLoadFull) window.jQuery.busyLoadFull('hide'); } catch(e) {}
+      }
       const res = document.getElementById('analysisResult');
       if (res) {
         const top = res.getBoundingClientRect().top + window.pageYOffset - 80;
