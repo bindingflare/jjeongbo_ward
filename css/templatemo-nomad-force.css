@@ -177,7 +177,7 @@ word-break: keep-all;
 overflow-wrap: normal;
 }
 
-.headline-split .phrase {
+.phrase {
 display: inline-flex;
 white-space: nowrap;
 min-width: max-content;
@@ -389,8 +389,20 @@ strong {
   HERO              
 -----------------------------------------*/
 .hero {
+  min-height: 300px;
   position: relative;
   overflow: hidden;
+}
+
+@media screen and (max-width: 470px) {
+  /* Reduce only the brand pieces in the hero heading on very small screens */
+  .heroText .brand-em {
+    font-size: 2.1rem;
+  }
+
+  .heroText .brand {
+    font-size: 1.1rem;
+  }
 }
 
 @media screen and (min-width: 992px) {
