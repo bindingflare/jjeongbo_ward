@@ -169,6 +169,20 @@ a:hover {
   left: 0;
 }
 
+.headline-split {
+display: flex;
+flex-wrap: wrap;
+gap: .25em;
+word-break: keep-all;
+overflow-wrap: normal;
+}
+
+.headline-split .phrase {
+display: inline-flex;
+white-space: nowrap;
+min-width: max-content;
+}
+
 /*---------------------------------------
   CUSTOM LINK               
 -----------------------------------------*/
