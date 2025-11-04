@@ -182,15 +182,6 @@
     <script src="js/ward.js"></script>
 
     <script>
-      // Simple date stamp for the hero subheader
-      (function(){
-        var el = document.getElementById('newsDate');
-        if (el) {
-          var d = new Date();
-          var s = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-          el.textContent = s;
-        }
-      })();
       // On news pages, force all hash links to navigate to index.html#section
       (function(){
         document.addEventListener('DOMContentLoaded', function(){

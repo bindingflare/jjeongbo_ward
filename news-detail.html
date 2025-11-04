@@ -72,7 +72,6 @@ https://templatemo.com/tm-567-nomad-force
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-
                     <div class="collapse navbar-collapse" id="navbarNav">
                       <ul class="navbar-nav mx-auto">
                         <li class="nav-item">
@@ -223,7 +222,7 @@ https://templatemo.com/tm-567-nomad-force
                             <span class="d-block" data-aos="zoom-in">다음 기사</span>
 
                             <h3 class="news-title" data-aos="fade-up">
-                                <a href="index.html#news" class="news-title-link">최근 소식 목록으로 돌아가기</a>
+                                <a href="https://gaeinjjeongbo.netlify.app#news" class="news-title-link">최근 소식 목록으로 돌아가기</a>
                             </h3>
                         </div>
 
@@ -280,8 +279,23 @@ https://templatemo.com/tm-567-nomad-force
         <script src="js/aos.js"></script>
         <script src="js/jquery.magnific-popup.min.js"></script>
         <script src="js/magnific-popup-options.js"></script>
-        <script src="js/scrollspy.min.js"></script>
+        <!-- scrollspy intentionally omitted on news pages -->
         <script src="js/custom.js"></script>
+        <script src="js/ward.js"></script>
+
+        <script>
+          // On news pages, force all hash links to navigate to index.html#section
+          (function(){
+            document.addEventListener('DOMContentLoaded', function(){
+              var links = document.querySelectorAll('a[href^="#"], a[href="#"]');
+              links.forEach(function(a){
+                var h = a.getAttribute('href') || '#';
+                var to = 'index.html' + (h === '#' ? '' : h);
+                a.setAttribute('href', to);
+              });
+            });
+          })();
+        </script>
 
     </body>
 </html>
