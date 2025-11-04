@@ -1,9 +1,10 @@
 /* Front-end logic: visit tracking, signup, analyzer */
 (function () {
-  // Apps Script endpoint URL
+  // 본인의 app script 주소를 넣을 것 (Apps Script Web App URL)
   const ADDR_SCRIPT = 'https://script.google.com/macros/s/AKfycbxknEwAXqcw6kr-EgsGmui7ngK_RreZy495wUFHVqXw7CYuTAomQt_NrAhkbF367I6Z/exec';
   const ANALYZE_ENDPOINT = 'https://swai-backend.onrender.com/api/check';
 
+  // Sam pading value to start with 0. eg: 01, 02, .. 09, 10, ..
   function padValue(value) {
     return (value < 10) ? "0" + value : value;
   }
@@ -55,7 +56,7 @@
       .then(() => loadScriptOnce('https://cdn.jsdelivr.net/gh/dinoqqq/simple-popup@master/dist/jquery.simple-popup.min.js'));
   }
 
-  // JSONP IP
+  // JSONP IP — getIP(json)와 동일한 역할 (ip 값을 채움)
   let jsonpIP = 'unknown';
   function loadJsonpIP() {
     return new Promise((resolve) => {
@@ -78,13 +79,14 @@
     });
   }
 
-  // Cookie helpers
+  // 쿠키에서 값을 가져오는 함수
   function getCookieValue(name) {
     const value = '; ' + document.cookie;
     const parts = value.split('; ' + name + '=');
     if (parts.length === 2) return parts.pop().split(';').shift();
   }
 
+  // 쿠키에 값을 저장하는 함수
   function setCookieValue(name, value, days) {
     let expires = '';
     if (days) {
@@ -96,23 +98,30 @@
   }
 
   function getUVfromCookie() {
+    // 6자리 임의의 문자열 생성
     const hash = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // 쿠키에서 기존 해시 값을 가져옴
     const existing = getCookieValue('user');
-    if (!existing) {
-      setCookieValue('user', hash, 180); // ~6 months
+    // 기존 해시 값이 없으면, 새로운 해시 값을 쿠키에 저장
+    if (!existingHash) {
+      setCookieValue("user", hash, 180); // 쿠키 만료일은 6개월 
       return hash;
+    } else {
+        // 기존 해시 값이 있으면, 기존 값을 반환
+        return existingHash;
     }
-    return existing;
   }
 
   function getMobileFlag() {
     var mobile = 'desktop';
 				if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-					// true for mobile device
+          // true for mobile device
 					mobile = 'mobile';
 				}
+    return mobile;
   }
 
+  /* UTM은 Landing URL 의 끝에 ?utm=yonsei 형식으로 지정할 수 있음 */
   function getUTMSimple() {
     try {
       var queryString = location.search;
@@ -148,6 +157,7 @@
 
   function assignmentSendVisitor() {
     if (!ADDR_SCRIPT || !window.axios) return;
+    /* data를 만들 땐 모든 field가 들어 있어야 함 */
     const payload = JSON.stringify({
       id: getUVfromCookie(),
       landingUrl: window.location.href,
@@ -157,8 +167,23 @@
       utm: getUTMSimple(),
       device: getMobileFlag()
     });
+    /* axios request */
     window.axios.get(ADDR_SCRIPT + '?action=insert&table=visitors&data=' + encodeURIComponent(payload))
-      .catch(() => {});
+      .catch(error => {
+        if (error.response) {
+            // 서버가 2xx 범위를 벗어난 상태 코드로 응답한 경우
+            console.log(error.response.data);
+            console.log(error.response.status);
+            console.log(error.response.headers);
+        } else if (error.request) {
+            // 요청이 전송되었지만 응답을 받지 못한 경우
+            console.log(error.request);
+        } else {
+            // 요청 설정 중에 오류가 발생한 경우
+            console.log('Error', error.message);
+        }
+        console.log(error.config);
+    });
   }
 
   function ensurePopupContainer() {
@@ -180,9 +205,11 @@
     if ($form.length === 0) return;
     $form.on('submit', function (e) {
       e.preventDefault();
+      // 입력값 읽기
       const email = $('#email').val() || '';
       const advice = $('#message').val() || '';
       const re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+      // 이메일 유효성 체크
       if (!email || !re.test(email)) {
         alert('이메일이 유효하지 않아 알림을 드릴 수가 없습니다. ');
         return false;
@@ -197,6 +224,7 @@
           if ($.fn && $.fn.simplePopup) $.fn.simplePopup({ type: 'html', htmlSelector: '#popup' });
         })
         .catch(() => {
+          // 에러 시 로딩 해제 (필요 시 상세 처리 가능)
           if ($.busyLoadFull) $.busyLoadFull('hide');
         });
       return false;
