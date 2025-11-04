@@ -1,7 +1,7 @@
 /* Front-end logic: visit tracking, signup, analyzer */
 (function () {
   // Apps Script endpoint URL
-  const ADDR_SCRIPT = 'https://swai-backend.onrender.com';
+  const ADDR_SCRIPT = 'https://swai-backend.onrender.com/api';
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function nowTimestamp() {
