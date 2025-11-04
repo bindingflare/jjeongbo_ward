@@ -143,13 +143,7 @@
     const b = (data && (data.bullets ?? data.issues ?? (data.result ? data.result.bullets : undefined))) || [];
     let score = typeof s === 'number' ? s : 0;
     score = Math.max(0, Math.min(100, score));
-    let label = l;
-    if (!label) {
-      if (score < 30) label = '낮음';
-      else if (score < 60) label = '보통';
-      else if (score < 80) label = '높음';
-      else label = '매우 높음';
-    }
+    let label = l || '(레이블 정보 없음)';
     const bullets = Array.isArray(b) ? b : [];
     return { score, label, bullets };
   }
@@ -251,7 +245,25 @@
     // Animate water meter fill + color (blue→green→yellow→red)
     if (meterEl) {
       var clamped = Math.max(0, Math.min(100, Number(result.score) || 0));
-      var hue = Math.round(240 - (240 * clamped / 100)); // 240=blue → 0=red
+      // Piecewise hue mapping by score bands:
+      // 0–30: ocean blue (~200)
+      // 30–60: ocean blue (200) → green (120)
+      // 60–80: green (120) → yellow (60)
+      // 80–100: orange (30) → red (0)
+      var hue;
+      if (clamped <= 30) {
+        hue = 200;
+      } else if (clamped <= 60) {
+        var t1 = (clamped - 30) / 30; // 0..1
+        hue = 200 - t1 * (200 - 120); // 200→120
+      } else if (clamped <= 80) {
+        var t2 = (clamped - 60) / 20; // 0..1
+        hue = 120 - t2 * (120 - 60); // 120→60
+      } else {
+        var t3 = (clamped - 80) / 20; // 0..1
+        hue = 60 - t3 * (60 - 0);     // 60→0
+      }
+      hue = Math.max(0, Math.min(360, Math.round(hue)));
       var water = `hsl(${hue} 85% 52%)`;
       var waterLight = `hsl(${hue} 90% 70%)`;
       meterEl.style.setProperty('--fill', clamped + '%');
