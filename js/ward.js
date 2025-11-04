@@ -244,35 +244,61 @@
     labelEl.textContent = `위험도: ${result.label}`;
     // Animate water meter fill + color (blue→green→yellow→red)
     if (meterEl) {
-      var clamped = Math.max(0, Math.min(100, Number(result.score) || 0));
-      // Piecewise hue mapping by score bands:
-      // 0–30: ocean blue (~200)
-      // 30–60: ocean blue (200) → green (120)
-      // 60–80: green (120) → yellow (50)
-      // 80–100: orange (30) → red (0)
-      var hue;
-      if (clamped <= 30) {
-        hue = 200;
-      } else if (clamped <= 60) {
-        var t1 = (clamped - 30) / 30; // 0..1
-        hue = 200 - t1 * (200 - 120); // 200→120
-      } else if (clamped <= 80) {
-        var t2 = (clamped - 60) / 20; // 0..1
-        hue = 120 - t2 * (120 - 50); // 120→50
-      } else {
-        var t3 = (clamped - 80) / 20; // 0..1
-        hue = 60 - t3 * (60 - 0);     // 60→0
+      var target = Math.max(0, Math.min(100, Number(result.score) || 0));
+
+      function scoreToHue(s) {
+        var hue;
+        if (s <= 30) {
+          hue = 200; // ocean blue
+        } else if (s <= 50) {
+          var t1 = (s - 30) / 20; // 0..1
+          hue = 200 - t1 * (200 - 120); // 200→120
+        } else if (s <= 80) {
+          var t2 = (s - 50) / 30; // 0..1
+          hue = 120 - t2 * (120 - 50); // 120→50
+        } else {
+          var t3 = (s - 80) / 20; // 0..1
+          hue = 30 - t3 * (30 - 0); // 30→0
+        }
+        return Math.max(0, Math.min(360, Math.round(hue)));
       }
-      hue = Math.max(0, Math.min(360, Math.round(hue)));
-      var water = `hsl(${hue} 85% 52%)`;
-      var waterLight = `hsl(${hue} 90% 70%)`;
-      meterEl.style.setProperty('--fill', clamped + '%');
-      meterEl.style.setProperty('--water', water);
-      meterEl.style.setProperty('--waterLight', waterLight);
-      meterEl.setAttribute('aria-valuenow', String(clamped));
+
+      // Cancel any in-flight animation
+      if (meterEl.__rafId) cancelAnimationFrame(meterEl.__rafId);
+
+      var from = parseFloat(meterEl.dataset.prev);
+      if (Number.isNaN(from)) from = target; // first run, jump to target
+
+      var start;
+      var duration = 1000; // ms
+      var ease = function (t) { return 1 - Math.pow(1 - t, 3); }; // easeOutCubic
+
+      function step(ts) {
+        if (start == null) start = ts;
+        var p = Math.min(1, (ts - start) / duration);
+        var e = ease(p);
+        var cur = from + (target - from) * e;
+        var hue = scoreToHue(cur);
+        var water = `hsl(${hue} 85% 52%)`;
+        var waterLight = `hsl(${hue} 90% 70%)`;
+        meterEl.style.setProperty('--fill', cur + '%');
+        meterEl.style.setProperty('--water', water);
+        meterEl.style.setProperty('--waterLight', waterLight);
+        meterEl.setAttribute('aria-valuenow', String(Math.round(cur)));
+        // animate numerical score display too
+        scoreEl.textContent = String(Math.round(cur));
+        if (p < 1) {
+          meterEl.__rafId = requestAnimationFrame(step);
+        } else {
+          delete meterEl.__rafId;
+          meterEl.dataset.prev = String(target);
+        }
+      }
+
       meterEl.setAttribute('aria-valuemin', '0');
       meterEl.setAttribute('aria-valuemax', '100');
       meterEl.setAttribute('role', 'meter');
+      meterEl.__rafId = requestAnimationFrame(step);
     }
     ul.innerHTML = '';
     result.bullets.forEach(b => {
