@@ -248,7 +248,7 @@
       // Piecewise hue mapping by score bands:
       // 0–30: ocean blue (~200)
       // 30–60: ocean blue (200) → green (120)
-      // 60–80: green (120) → yellow (60)
+      // 60–80: green (120) → yellow (50)
       // 80–100: orange (30) → red (0)
       var hue;
       if (clamped <= 30) {
