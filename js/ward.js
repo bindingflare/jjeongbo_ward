@@ -1,6 +1,7 @@
-/* 개인정보와드 front-end logic: visit tracking, signup, analyzer */
+/* Front-end logic: visit tracking, signup, analyzer */
 (function () {
-  const GAS_BASE = 'https://script.google.com/macros/s/AKfycbxknEwAXqcw6kr-EgsGmui7ngK_RreZy495wUFHVqXw7CYuTAomQt_NrAhkbF367I6Z/exec';
+  // Apps Script endpoint URL
+  const ADDR_SCRIPT = 'https://swai-backend.onrender.com';
 
   function pad(n) { return n < 10 ? '0' + n : '' + n; }
   function nowTimestamp() {
@@ -14,108 +15,153 @@
     return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
   }
 
-  function getDeviceType() {
-    const ua = navigator.userAgent.toLowerCase();
-    const isTablet = /(ipad|tablet|sm-t|gt-p|tab|nexus 7|nexus 10|kfapwi|kindle)/i.test(ua);
-    const isMobile = /(iphone|ipod|android(?!.*tablet)|blackberry|iemobile|opera mini|mobile)/i.test(ua);
-    if (isTablet) return 'tablet';
-    if (isMobile) return 'mobile';
-    return 'desktop';
+  
+
+  // Dependencies are loaded dynamically to avoid editing HTML
+  function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${src}"]`)) return resolve();
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+    });
   }
 
-  async function getPublicIP(timeoutMs = 1500) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const res = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal, credentials: 'omit', cache: 'no-store' });
-      if (!res.ok) throw new Error('ipify non-200');
-      const data = await res.json();
-      return (data && data.ip) ? String(data.ip) : '';
-    } catch (_) {
-      return '';
-    } finally {
-      clearTimeout(t);
-    }
+  function loadCssOnce(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = href;
+    document.head.appendChild(l);
   }
 
-  function getUTMString() {
-    try {
-      const url = new URL(window.location.href);
-      const params = url.searchParams;
-      const keys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
-      const parts = [];
-      keys.forEach(k => { if (params.get(k)) parts.push(`${k}=${params.get(k)}`); });
-      return parts.join('&') || url.search.replace(/^\?/, '') || '';
-    } catch (e) {
-      return '';
-    }
+  function ensureAssignmentDeps() {
+    loadCssOnce('https://cdn.jsdelivr.net/npm/busy-load/dist/app.min.css');
+    loadCssOnce('https://cdn.jsdelivr.net/gh/dinoqqq/simple-popup@master/dist/jquery.simple-popup.min.css');
+    return Promise.resolve()
+      .then(() => loadScriptOnce('https://unpkg.com/axios/dist/axios.min.js'))
+      .then(() => loadScriptOnce('https://cdn.jsdelivr.net/npm/busy-load/dist/app.min.js'))
+      .then(() => loadScriptOnce('https://cdn.jsdelivr.net/gh/dinoqqq/simple-popup@master/dist/jquery.simple-popup.min.js'));
   }
 
-  function getVisitorId() {
-    try {
-      const key = 'ward_visitor_id';
-      let id = localStorage.getItem(key);
-      if (!id) {
-        id = (crypto && crypto.randomUUID) ? crypto.randomUUID() : 'id_' + Math.random().toString(16).slice(2) + Date.now();
-        localStorage.setItem(key, id);
+  // JSONP IP
+  let jsonpIP = 'unknown';
+  function loadJsonpIP() {
+    return new Promise((resolve) => {
+      const cb = '__wardGetIP';
+      if (!window[cb]) {
+        window[cb] = function (json) {
+          try { jsonpIP = (json && json.ip) ? json.ip : 'unknown'; } catch (e) { jsonpIP = 'unknown'; }
+          resolve(jsonpIP);
+        };
       }
-      return id;
-    } catch (e) {
-      return 'id_' + Math.random().toString(16).slice(2);
-    }
+      const src = 'https://jsonip.com?format=jsonp&callback=' + cb;
+      if (document.querySelector(`script[src^="https://jsonip.com"]`)) return resolve(jsonpIP);
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onerror = () => resolve(jsonpIP);
+      document.head.appendChild(s);
+      // resolve anyway after timeout to avoid blocking
+      setTimeout(() => resolve(jsonpIP), 1500);
+    });
   }
 
-  function sendToGAS(table, payload) {
+  // Cookie helpers
+  function getCookieValue(name) {
+    const value = '; ' + document.cookie;
+    const parts = value.split('; ' + name + '=');
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  function setCookieValue(name, value, days) {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + (value || '') + expires + '; path=/';
+  }
+
+  function getUVfromCookie() {
+    const hash = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const existing = getCookieValue('user');
+    if (!existing) {
+      setCookieValue('user', hash, 180); // ~6 months
+      return hash;
+    }
+    return existing;
+  }
+
+  function getMobileFlag() {
+    return (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) ? 'mobile' : 'desktop';
+  }
+
+  function getUTMSimple() {
     try {
-      const url = `${GAS_BASE}?action=insert&table=${encodeURIComponent(table)}&data=${encodeURIComponent(JSON.stringify(payload))}`;
-      // Use no-cors so it doesn't error in browser; fire-and-forget
-      fetch(url, { method: 'GET', mode: 'no-cors', keepalive: true }).catch(() => {});
-    } catch (e) {
-      // swallow errors; non-blocking
-    }
+      const params = new URLSearchParams(location.search);
+      return params.get('utm');
+    } catch (e) { return null; }
   }
 
-  async function trackVisit() {
-    const ip = await getPublicIP().catch(() => '');
-    const data = {
-      id: getVisitorId(),
+  function assignmentSendVisitor() {
+    if (!ADDR_SCRIPT || !window.axios) return;
+    const payload = JSON.stringify({
+      id: getUVfromCookie(),
       landingUrl: window.location.href,
-      ip: ip,
+      ip: jsonpIP,
       referer: document.referrer || '',
       time_stamp: nowTimestamp(),
-      utm: 'company_website',
-      device: getDeviceType()
-    };
-    sendToGAS('visitors', data);
+      utm: getUTMSimple(),
+      device: getMobileFlag()
+    });
+    window.axios.get(ADDR_SCRIPT + '?action=insert&table=visitors&data=' + encodeURIComponent(payload))
+      .catch(() => {});
   }
 
-  function handleSignup(form) {
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
+  function ensurePopupContainer() {
+    if (!document.getElementById('popup')) {
+      const div = document.createElement('div');
+      div.id = 'popup';
+      div.style.display = 'none';
+      div.innerHTML = '<h1>감사합니다. </h1><p>이제는 우리는 같은 배를 탔습니다. </p>';
+      document.body.appendChild(div);
+    }
+  }
+
+  function assignmentBindSignup() {
+    if (!ADDR_SCRIPT || !window.axios || !window.jQuery) return;
+    ensurePopupContainer();
+    const $ = window.jQuery;
+    // Map to existing form/inputs in this template
+    const $form = $('form.contact-form');
+    if ($form.length === 0) return;
+    $form.on('submit', function (e) {
       e.preventDefault();
-      const email = (document.getElementById('email') || {}).value || '';
-      const name = (document.getElementById('name') || {}).value || '';
-      const message = (document.getElementById('message') || {}).value || '';
-      if (!email) return;
-      const data = {
-        id: email,
-        name,
-        message,
-        landingUrl: window.location.href,
-        referer: document.referrer || '',
-        time_stamp: nowTimestamp(),
-        utm: getUTMString(),
-        device: getDeviceType()
-      };
-      sendToGAS('signups', data);
-      // simple UX feedback
-      const btn = form.querySelector('button[type="submit"]');
-      if (btn) btn.disabled = true;
-      const note = document.createElement('div');
-      note.className = 'alert alert-success mt-3';
-      note.textContent = '감사합니다! 요청이 접수되었습니다.';
-      form.appendChild(note);
-      form.reset();
+      const email = $('#email').val() || '';
+      const advice = $('#message').val() || '';
+      const re = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
+      if (!email || !re.test(email)) {
+        alert('이메일이 유효하지 않아 알림을 드릴 수가 없습니다. ');
+        return false;
+      }
+      const payload = JSON.stringify({ id: getUVfromCookie(), email: email, advice: advice });
+      if ($.busyLoadFull) $.busyLoadFull('show');
+      window.axios.get(ADDR_SCRIPT + '?action=insert&table=tab_final&data=' + encodeURIComponent(payload))
+        .then(() => {
+          $('#email').val('');
+          $('#message').val('');
+          if ($.busyLoadFull) $.busyLoadFull('hide');
+          if ($.fn && $.fn.simplePopup) $.fn.simplePopup({ type: 'html', htmlSelector: '#popup' });
+        })
+        .catch(() => {
+          if ($.busyLoadFull) $.busyLoadFull('hide');
+        });
+      return false;
     });
   }
 
@@ -230,13 +276,14 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Track visit (fire-and-forget)
-    trackVisit();
+    ensureAssignmentDeps()
+      .then(() => loadJsonpIP())
+      .then(() => {
+        assignmentSendVisitor();
+        assignmentBindSignup();
+      })
+      .catch(() => {});
 
-    // Signup handler
-    handleSignup(document.querySelector('form.contact-form'));
-
-    // Analyzer wiring
     const btn = document.getElementById('analyzeBtn');
     const loadBtn = document.getElementById('loadSampleBtn');
     if (loadBtn) loadBtn.addEventListener('click', function () { loadSample(); });
@@ -245,7 +292,6 @@
       const text = ta ? ta.value : '';
       const result = analyzeConsent(text);
       updateAnalysisUI(result);
-      // scroll to result
       const res = document.getElementById('analysisResult');
       if (res) {
         const top = res.getBoundingClientRect().top + window.pageYOffset - 80;
