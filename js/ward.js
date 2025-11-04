@@ -189,7 +189,7 @@
       }
       const payload = JSON.stringify({ id: getUVfromCookie(), email: email, advice: advice });
       if ($.busyLoadFull) $.busyLoadFull('show');
-      window.axios.get(ADDR_SCRIPT + '?action=insert&table=tab_final&data=' + encodeURIComponent(payload))
+      window.axios.get(ADDR_SCRIPT + '?action=insert&table=tab_master&data=' + encodeURIComponent(payload))
         .then(() => {
           $('#email').val('');
           $('#message').val('');
