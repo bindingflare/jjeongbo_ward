@@ -497,6 +497,17 @@ strong {
   display: inline-block;
 }
 
+.news-category-inline {
+  background: var(--white-color);
+  /* position: absolute;
+  z-index: 9;
+  top: 0;
+  left: 0; */
+  font-size: 20px;
+  padding: 4px 12px;
+  display: inline-block;
+}
+
 .news-text-info {
   margin: 0 20px;
 }
@@ -542,6 +553,10 @@ strong {
   z-index: -1;
   transition: width .6s cubic-bezier(.25,.8,.25,1) 0s;
   background: #198754;
+}
+
+.news-image-hover-danger::after {
+  background: #dc3545;
 }
 
 .news-image-hover-warning::after {
