@@ -123,7 +123,13 @@
                     const seedText = t ? t.trim() : '';
                     const ta = document.getElementById('consentText');
                     const btn = document.getElementById('analyzeBtn');
-                    if (!ta || !btn || !seedText) return;
+                    const err = document.getElementById('analysisError');
+                    if (!seedText) {
+                        if (err) err.classList.remove('d-none');
+                        return;
+                    }
+                    if (err) err.classList.add('d-none');
+                    if (!ta || !btn) return;
                     ta.value = seedText;
                     btn.click();
                 });
