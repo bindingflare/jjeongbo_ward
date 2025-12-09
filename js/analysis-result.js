@@ -2,10 +2,20 @@
 (function () {
   const ANALYZE_ENDPOINT = 'https://swai-backend.onrender.com/api/check';
 
+  function sanitizeEndpoint(ep) {
+    if (!ep) return null;
+    var low = String(ep).toLowerCase();
+    if (low.indexOf('analysis-result') !== -1 || low.indexOf('.html') !== -1 || low.indexOf('?text=') !== -1) {
+      console.warn('[analysis-result] ignoring invalid endpoint override', ep);
+      return null;
+    }
+    return ep;
+  }
+
   function resolveAnalyzerEndpoint(override) {
-    return override
-      || (typeof window !== 'undefined' ? window.__wardAnalysisEndpointOverride : undefined)
-      || ANALYZE_ENDPOINT;
+    const fromOverride = sanitizeEndpoint(override);
+    const fromWindow = sanitizeEndpoint(typeof window !== 'undefined' ? window.__wardAnalysisEndpointOverride : undefined);
+    return fromOverride || fromWindow || ANALYZE_ENDPOINT;
   }
 
   async function callRemoteAnalyzer(text, endpointOverride) {
