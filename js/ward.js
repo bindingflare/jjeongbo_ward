@@ -129,16 +129,9 @@
     } catch (e) { return ""; }
   }
   
-  function resolveAnalyzerEndpoint(override) {
-    return override
-      || (typeof window !== 'undefined' ? window.__wardAnalysisEndpointOverride : undefined)
-      || ANALYZE_ENDPOINT;
-  }
-  
-  async function callRemoteAnalyzer(text, endpointOverride) {
-    const endpoint = resolveAnalyzerEndpoint(endpointOverride);
-    if (!endpoint) throw new Error('Analyzer endpoint missing');
-    const res = await fetch(endpoint, {
+  async function callRemoteAnalyzer(text) {
+    if (!ANALYZE_ENDPOINT) throw new Error('Analyzer endpoint missing');
+    const res = await fetch(ANALYZE_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ text })
@@ -331,12 +324,6 @@
     // Bind signup early so default POST is prevented even if CDNs fail
     assignmentBindSignup();
 
-    function allowProgrammaticAnalyze() {
-      var body = document.body;
-      var path = (location.pathname || '').toLowerCase();
-      return (body && body.dataset.autoAnalyze === 'true') || path.indexOf('analysis-result') !== -1;
-    }
-
     ensureAssignmentDeps()
       .then(() => loadJsonpIP())
       .then(() => {
@@ -347,12 +334,10 @@
     const btn = document.getElementById('analyzeBtn');
     const loadBtn = document.getElementById('loadSampleBtn');
     if (loadBtn) loadBtn.addEventListener('click', function () { loadSample(); });
-    if (btn) btn.addEventListener('click', async function (evt) {
-      if (!evt.isTrusted && !allowProgrammaticAnalyze()) return;
+    if (btn) btn.addEventListener('click', async function () {
       const ta = document.getElementById('consentText');
       const text = ta ? ta.value : '';
       if (!text || !text.trim()) return;
-      try { console.debug('[analyze] call start', { endpoint: resolveAnalyzerEndpoint(), textLength: text.length }); } catch (_) {}
       try {
         if (window.jQuery && window.jQuery.busyLoadFull) window.jQuery.busyLoadFull('show');
         const result = await callRemoteAnalyzer(text);
