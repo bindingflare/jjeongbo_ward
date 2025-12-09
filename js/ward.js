@@ -352,6 +352,7 @@
       const ta = document.getElementById('consentText');
       const text = ta ? ta.value : '';
       if (!text || !text.trim()) return;
+      try { console.debug('[analyze] call start', { endpoint: resolveAnalyzerEndpoint(), textLength: text.length }); } catch (_) {}
       try {
         if (window.jQuery && window.jQuery.busyLoadFull) window.jQuery.busyLoadFull('show');
         const result = await callRemoteAnalyzer(text);

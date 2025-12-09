@@ -131,6 +131,11 @@
                     var text = meta.originalText || payload.originalText || payload.text || meta.text || '';
                     var endpoint = meta.fullLink || payload.fullLink || payload.endpoint || meta.endpoint;
                     text = (text || '').trim();
+                    console.debug('[analysis-result] payload received', {
+                        hasMeta: !!payload.meta,
+                        endpoint: endpoint || '(none)',
+                        textLength: text.length
+                    });
                     if (!text) return false;
                     if (endpoint) window.__wardAnalysisEndpointOverride = endpoint;
                     hideError();
