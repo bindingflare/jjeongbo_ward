@@ -331,6 +331,10 @@
     // Bind signup early so default POST is prevented even if CDNs fail
     assignmentBindSignup();
 
+    function allowProgrammaticAnalyze() {
+      return !!(document.body && document.body.dataset.autoAnalyze === 'true');
+    }
+
     ensureAssignmentDeps()
       .then(() => loadJsonpIP())
       .then(() => {
@@ -341,7 +345,8 @@
     const btn = document.getElementById('analyzeBtn');
     const loadBtn = document.getElementById('loadSampleBtn');
     if (loadBtn) loadBtn.addEventListener('click', function () { loadSample(); });
-    if (btn) btn.addEventListener('click', async function () {
+    if (btn) btn.addEventListener('click', async function (evt) {
+      if (!evt.isTrusted && !allowProgrammaticAnalyze()) return;
       const ta = document.getElementById('consentText');
       const text = ta ? ta.value : '';
       if (!text || !text.trim()) return;
