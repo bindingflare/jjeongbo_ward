@@ -1,0 +1,58 @@
+{
+  "feed": "news-all",
+  "order": "date_desc",
+  "featuredId": "news-launch",
+  "items": [
+    {
+      "id": "news-launch",
+      "title": "개인정보와드 서비스 정식 런칭 안내",
+      "category": "공지",
+      "date": "2025-11-05",
+      "displayDate": "2025년 11월 5일",
+      "url": "news/news-launch.html",
+      "image": "images/personal_information/personal-data-consent-form_1200x.png",
+      "featured": true
+    },
+    {
+      "id": "news-detail",
+      "title": "개인정보보호법 개정 요약 (최근 2024 - 2025)",
+      "category": "개인정보",
+      "date": "2025-09-01",
+      "displayDate": "최근 업데이트",
+      "url": "news/news-detail.html",
+      "image": "images/news/privacy/2025_gov_promotion.png",
+      "location": "서울"
+    },
+    {
+      "id": "news-lottecard",
+      "title": "롯데카드 개인신용정보 유출 관련 안내",
+      "category": "유출",
+      "date": "2025-08-16",
+      "displayDate": "2025년 8월 16일",
+      "url": "news/news-lottecard.html",
+      "image": "images/news/lottecard/롯데카드.jpg"
+    },
+    {
+      "id": "news-coupang",
+      "title": "쿠팡 (Coupang) 대규모 회원 정보 유출 관련 안내",
+      "category": "유출",
+      "date": "2025-05-12",
+      "displayDate": "2025년 5월 12일",
+      "url": "news-premium/news-coupang.html",
+      "image": "images/news/coupang/쿠팡.jpg",
+      "premium": true,
+      "badges": [
+        "PRO"
+      ]
+    },
+    {
+      "id": "news-skt",
+      "title": "SK텔레콤 (SKT) 유심 정보 유출 관련 안내",
+      "category": "유출",
+      "date": "2025-04-26",
+      "displayDate": "2025년 4월 26일",
+      "url": "news/news-skt.html",
+      "image": "images/news/skt/skt_usim.jpg"
+    }
+  ]
+}
