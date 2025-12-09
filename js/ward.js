@@ -332,7 +332,9 @@
     assignmentBindSignup();
 
     function allowProgrammaticAnalyze() {
-      return !!(document.body && document.body.dataset.autoAnalyze === 'true');
+      var body = document.body;
+      var path = (location.pathname || '').toLowerCase();
+      return (body && body.dataset.autoAnalyze === 'true') || path.indexOf('analysis-result') !== -1;
     }
 
     ensureAssignmentDeps()
