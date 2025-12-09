@@ -129,9 +129,16 @@
     } catch (e) { return ""; }
   }
   
-  async function callRemoteAnalyzer(text) {
-    if (!ANALYZE_ENDPOINT) throw new Error('Analyzer endpoint missing');
-    const res = await fetch(ANALYZE_ENDPOINT, {
+  function resolveAnalyzerEndpoint(override) {
+    return override
+      || (typeof window !== 'undefined' ? window.__wardAnalysisEndpointOverride : undefined)
+      || ANALYZE_ENDPOINT;
+  }
+  
+  async function callRemoteAnalyzer(text, endpointOverride) {
+    const endpoint = resolveAnalyzerEndpoint(endpointOverride);
+    if (!endpoint) throw new Error('Analyzer endpoint missing');
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({ text })

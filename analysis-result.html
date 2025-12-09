@@ -116,22 +116,61 @@
         </script>
         <script>
             (function () {
-                // Prefill the hidden textarea from URL (?text=...) and auto-trigger the existing analyze handler
-                window.addEventListener('load', function () {
-                    const params = new URLSearchParams(window.location.search);
-                    const t = params.get('text') || params.get('prefill');
-                    const seedText = t ? t.trim() : '';
-                    const ta = document.getElementById('consentText');
-                    const btn = document.getElementById('analyzeBtn');
-                    const err = document.getElementById('analysisError');
-                    if (!seedText) {
-                        if (err) err.classList.remove('d-none');
-                        return;
+                var ta;
+                var btn;
+                var err;
+                var alreadyRan = false;
+
+                function hideError() { if (err) err.classList.add('d-none'); }
+                function showError() { if (err) err.classList.remove('d-none'); }
+
+                function runAnalysisFromPayload(payload) {
+                    if (alreadyRan) return true;
+                    if (!payload) return false;
+                    var meta = payload.meta || {};
+                    var text = meta.originalText || payload.originalText || payload.text || meta.text || '';
+                    var endpoint = meta.fullLink || payload.fullLink || payload.endpoint || meta.endpoint;
+                    text = (text || '').trim();
+                    if (!text) return false;
+                    if (endpoint) window.__wardAnalysisEndpointOverride = endpoint;
+                    hideError();
+                    if (ta) ta.value = text;
+                    if (btn) btn.click();
+                    alreadyRan = true;
+                    return true;
+                }
+
+                function trySessionPayload() {
+                    try {
+                        var raw = sessionStorage.getItem('analysisPayload');
+                        if (!raw) return false;
+                        var parsed = JSON.parse(raw);
+                        return runAnalysisFromPayload(parsed);
+                    } catch (e) {
+                        return false;
                     }
-                    if (err) err.classList.add('d-none');
-                    if (!ta || !btn) return;
-                    ta.value = seedText;
-                    btn.click();
+                }
+
+                window.addEventListener('message', function (event) {
+                    if (runAnalysisFromPayload(event && event.data)) return;
+                });
+
+                window.addEventListener('load', function () {
+                    ta = document.getElementById('consentText');
+                    btn = document.getElementById('analyzeBtn');
+                    err = document.getElementById('analysisError');
+
+                    // Old flow: URL parameter seed
+                    var params = new URLSearchParams(window.location.search);
+                    var t = params.get('text') || params.get('prefill');
+                    if (runAnalysisFromPayload({ text: t })) return;
+
+                    // Data-based flow: pass payload via sessionStorage
+                    if (runAnalysisFromPayload(history.state)) return;
+                    if (trySessionPayload()) return;
+
+                    // If nothing is provided yet, show an error until a postMessage arrives
+                    showError();
                 });
             })();
         </script>
