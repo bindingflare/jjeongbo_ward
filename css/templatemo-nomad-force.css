@@ -594,6 +594,29 @@ strong {
   display: inline-block;
 }
 
+.news-thumb { position: relative; }
+.news-badge-stack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 6px 0 6px;
+  z-index: 10;
+}
+.news-badge-stack .news-category { position: static; margin: 0; }
+.badge-pro {
+  background: #7c4dff;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(124, 77, 255, 0.35);
+  letter-spacing: 0.3px;
+}
+
 .nav-news {
   position: relative;
 }

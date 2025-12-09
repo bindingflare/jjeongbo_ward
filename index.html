@@ -569,7 +569,7 @@ https://templatemo.com/tm-567-nomad-force
         <script src="js/ward.js"></script>
         <script>
             (function () {
-                const FEED_URL = 'news-only.json';
+                const FEED_URL = 'news-only-full.json';
 
                 function categoryClass(cat) {
                     const map = { '유출': 'bg-danger', '공지': 'bg-success', '개인정보': 'bg-primary' };
@@ -603,12 +603,24 @@ https://templatemo.com/tm-567-nomad-force
                     img.alt = item.title || 'news';
                     a.appendChild(img);
 
+                    const badgeStack = document.createElement('div');
+                    badgeStack.className = 'news-badge-stack';
+
                     const badge = document.createElement('div');
                     badge.className = `news-category ${categoryClass(item.category)} text-white`;
                     badge.textContent = item.category || '뉴스';
+                    badgeStack.appendChild(badge);
+
+                    const hasPro = item.premium || (Array.isArray(item.badges) && item.badges.includes('PRO'));
+                    if (hasPro) {
+                        const pro = document.createElement('span');
+                        pro.className = 'badge-pro';
+                        pro.textContent = 'PRO';
+                        badgeStack.appendChild(pro);
+                    }
 
                     top.appendChild(a);
-                    top.appendChild(badge);
+                    top.appendChild(badgeStack);
                     wrap.appendChild(top);
 
                     const bottom = document.createElement('div');
