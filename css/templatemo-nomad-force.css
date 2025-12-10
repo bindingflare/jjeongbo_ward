@@ -942,3 +942,10 @@ strong {
       display: none !important;
     }
   }
+
+  @media (min-width: 1200px) {
+    #news .container {
+        width: 960px;
+        max-width: 960px !important; 
+    }
+}
